@@ -49,7 +49,7 @@ class Company {
    * Returns [{ handle, name, description, numEmployees, logoUrl }, ...]
    * */
 
-  static async findAll() {
+  static async findAll(filter = {name: '', minEmployees: 0, maxEmployees: 1000000}) {
     const companiesRes = await db.query(
           `SELECT handle,
                   name,
@@ -57,7 +57,8 @@ class Company {
                   num_employees AS "numEmployees",
                   logo_url AS "logoUrl"
            FROM companies
-           ORDER BY name`);
+           WHERE name ILIKE $1 AND (num_employees >= $2 AND num_employees <= $3)
+           ORDER BY name`, [`%${filter.name??''}%`, filter.minEmployees??0, filter.maxEmployees??1000000]);
     return companiesRes.rows;
   }
 
