@@ -11,6 +11,7 @@ const {
   commonAfterEach,
   commonAfterAll,
   u1Token,
+  u2Token
 } = require("./_testCommon");
 
 beforeAll(commonBeforeAll);
@@ -61,6 +62,14 @@ describe("POST /companies", function () {
         .set("authorization", `Bearer ${u1Token}`);
     expect(resp.statusCode).toEqual(400);
   });
+
+  test("bad request with non admin user", async function () {
+    const resp = await request(app)
+        .post("/companies")
+        .send(newCompany)
+        .set("authorization", `Bearer ${u2Token}`);
+    expect(resp.statusCode).toEqual(401);
+  })
 });
 
 /************************************** GET /companies */
