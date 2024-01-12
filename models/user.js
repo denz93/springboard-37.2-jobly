@@ -10,6 +10,9 @@ const {
 } = require("../expressError");
 
 const { BCRYPT_WORK_FACTOR } = require("../config.js");
+const { jobSchema } = require("../schemas/job.schema");
+
+
 
 /** Related functions for users. */
 
@@ -138,7 +141,11 @@ class User {
     const user = userRes.rows[0];
 
     if (!user) throw new NotFoundError(`No user: ${username}`);
-
+    const jobResult =await db.query(`
+      SELECT job_id FROM applications
+      WHERE username = $1
+    `, [username]);
+    user.jobs = jobResult.rows.map(job => job.job_id);
     return user;
   }
 
@@ -193,16 +200,65 @@ class User {
   /** Delete given user from database; returns undefined. */
 
   static async remove(username) {
-    let result = await db.query(
+    let {rowCount} = await db.query(
           `DELETE
            FROM users
-           WHERE username = $1
-           RETURNING username`,
+           WHERE username = $1`,
         [username],
     );
-    const user = result.rows[0];
 
-    if (!user) throw new NotFoundError(`No user: ${username}`);
+    if (rowCount === 0) throw new NotFoundError(`No user: ${username}`);
+  }
+
+  /** Apply a job to a user
+   * 
+   * 
+  */
+  static async apply(username, jobId) {
+    const {rowCount: usernameAndJobExisted} = await db.query(
+      `SELECT 1 
+      WHERE EXISTS (SELECT * FROM users WHERE username = $1) AND 
+        EXISTS (SELECT * FROM jobs WHERE id = $2)`, [username, jobId]
+    )
+    if (!usernameAndJobExisted) {
+      throw new NotFoundError(`User ${username} or Job ${jobId} not found`)
+    }
+    const {rowCount: isExisted} = await db.query(
+      `SELECT 1 FROM applications WHERE username = $1 AND job_id = $2`, [username, jobId]
+    )
+    if (isExisted) {
+      throw new BadRequestError(`User ${username} already applied to job ${jobId}`)
+    }
+    const {rowCount} = await db.query(
+      `INSERT INTO applications
+      (username, job_id)
+      VALUES ($1, $2)
+      ON CONFLICT DO NOTHING
+      `
+      ,
+      [username, jobId]
+    );
+    return rowCount > 0;
+  }
+
+  /**
+   * Match a users with technologies-related jobs
+   */
+  static async matchJob(username) {
+    const {rows: userTechnologies} = await db.query(`
+      SELECT tech_id
+      FROM user_tech
+      WHERE username = $1
+    `, [username])
+    const technologies = userTechnologies.map(t => t.tech_id)
+    // const technologies = [1, 2]
+    console.log({technologies})
+    const result = await db.query(`
+      SELECT id, title, salary, equity, company_handle AS "companyHandle"
+      FROM jobs
+      WHERE id in (SELECT job_id FROM job_tech WHERE tech_id = ANY($1))
+    `, [technologies])
+    return result.rows.map(j => jobSchema.parse(j))
   }
 }
 

@@ -1,3 +1,5 @@
+CREATE TYPE APPLICATION_STATE AS ENUM ('applied', 'interested', 'rejected', 'accepted');
+
 CREATE TABLE companies (
   handle VARCHAR(25) PRIMARY KEY CHECK (handle = lower(handle)),
   name TEXT UNIQUE NOT NULL,
@@ -30,5 +32,23 @@ CREATE TABLE applications (
     REFERENCES users ON DELETE CASCADE,
   job_id INTEGER
     REFERENCES jobs ON DELETE CASCADE,
+  state APPLICATION_STATE DEFAULT 'applied',
   PRIMARY KEY (username, job_id)
+);
+
+CREATE TABLE technologies (
+  id SERIAL PRIMARY KEY,
+  name TEXT NOT NULL UNIQUE
+);
+
+CREATE TABLE job_tech (
+  job_id INTEGER REFERENCES jobs ON DELETE CASCADE,
+  tech_id INTEGER REFERENCES technologies ON DELETE CASCADE,
+  PRIMARY KEY (job_id, tech_id)
+);
+
+CREATE TABLE user_tech (
+  username VARCHAR(25) REFERENCES users ON DELETE CASCADE,
+  tech_id INTEGER REFERENCES technologies ON DELETE CASCADE,
+  PRIMARY KEY (username, tech_id)
 );

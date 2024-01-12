@@ -12,7 +12,9 @@ const {
   commonBeforeEach,
   commonAfterEach,
   commonAfterAll,
+  jobs
 } = require("./_testCommon");
+const { sampleJobs } = require("../routes/_testCommon");
 
 beforeAll(commonBeforeAll);
 beforeEach(commonBeforeEach);
@@ -140,8 +142,16 @@ describe("get", function () {
       lastName: "U1L",
       email: "u1@email.com",
       isAdmin: false,
+      jobs: []
     });
   });
+
+  test("works with applied jobs", async function () {
+    await User.apply("u1", jobs[0].id);
+    const user = await User.get("u1");
+    expect(user.jobs).toEqual([jobs[0].id]);
+
+  })
 
   test("not found if no such user", async function () {
     try {
@@ -228,3 +238,11 @@ describe("remove", function () {
     }
   });
 });
+
+/************************************** matchJob */
+describe("matchJob", function () {
+  test("works", async function () {
+    const result = await User.matchJob("u1");
+    expect(result).toEqual([jobs[2], jobs[3]]);
+  })
+})

@@ -12,8 +12,10 @@ const {
   commonAfterEach,
   commonAfterAll,
   u1Token,
-  u2Token
+  u2Token,
+  sampleJobs
 } = require("./_testCommon");
+const supertest = require("supertest");
 
 beforeAll(commonBeforeAll);
 beforeEach(commonBeforeEach);
@@ -199,6 +201,7 @@ describe("GET /users/:username", function () {
         lastName: "U1L",
         email: "user1@user.com",
         isAdmin: true,
+        jobs: []
       },
     });
   });
@@ -214,6 +217,7 @@ describe("GET /users/:username", function () {
         lastName: "U2L",
         email: "user2@user.com",
         isAdmin: false,
+        jobs: []
       },
     });
   })
@@ -375,3 +379,65 @@ describe("DELETE /users/:username", function () {
     expect(resp.statusCode).toEqual(404);
   });
 });
+
+/************************************** POST /users/:username/jobs/:id */
+describe('POST /users/:username/jobs/:id', () => {
+  test('works for admin users', async () => {
+    const resp = await request(app)
+      .post(`/users/u1/jobs/${sampleJobs[0].id}`)
+      .set("authorization", `Bearer ${u1Token}`)
+      .send()
+      .expect(201)
+    expect(resp.body).toEqual({ applied: sampleJobs[0].id })
+  })
+  test('works for non-admin users', async () => {
+    const resp = await request(app)
+      .post(`/users/u2/jobs/${sampleJobs[0].id}`)
+      .set("authorization", `Bearer ${u2Token}`)
+      .send()
+      .expect(201)
+    expect(resp.body).toEqual({
+      applied: sampleJobs[0].id
+    })
+  })
+  test('unauth for anon', async () => {
+    const resp = await request(app)
+      .post(`/users/u1/jobs/${sampleJobs[0]}`)
+      .send()
+      .expect(401)
+    expect(resp.body).toEqual({
+      error: {
+        message: 'Unauthorized',
+        status: 401
+      }
+    })
+  })
+  test('username or job not found', async () => {
+    const resp = await request(app)
+      .post(`/users/nope/jobs/0`)
+      .set("authorization", `Bearer ${u1Token}`)
+      .expect(404)
+    await request(app)
+      .post(`/users/u1/jobs/0`)
+      .set("authorization", `Bearer ${u1Token}`)
+      .expect(404)
+  })
+  test('bad request if already applied', async () => {
+    await request(app)
+    .post(`/users/u1/jobs/${sampleJobs[0].id}`)
+    .set("authorization", `Bearer ${u1Token}`)
+    .send()
+    .expect(201)
+    const resp = await request(app)
+      .post(`/users/u1/jobs/${sampleJobs[0].id}`)
+      .set("authorization", `Bearer ${u1Token}`)
+      .send()
+      .expect(400)
+    expect(resp.body).toEqual({
+      error: {
+        message: `User u1 already applied to job ${sampleJobs[0].id}`,
+        status: 400
+      }
+    })
+  })
+})

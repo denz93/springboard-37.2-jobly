@@ -3,6 +3,9 @@
 const { Client } = require("pg");
 const { getDatabaseUri } = require("./config");
 
+/**
+ * @type {Client}
+ */
 let db;
 
 if (process.env.NODE_ENV === "production") {
