@@ -4,6 +4,7 @@ const db = require("../db.js");
 const User = require("../models/user");
 const Company = require("../models/company");
 const Job = require("../models/job.js");
+const Technology = require("../models/technology");
 
 const { createToken } = require("../helpers/tokens");
 
@@ -13,10 +14,17 @@ const { createToken } = require("../helpers/tokens");
 let sampleJobs = [];
 
 async function commonBeforeAll() {
+  await db.query("DELETE FROM job_tech");
+  await db.query("DELETE FROM user_tech");
+
   // noinspection SqlWithoutWhere
   await db.query("DELETE FROM users");
   // noinspection SqlWithoutWhere
   await db.query("DELETE FROM companies");
+
+  await db.query("DELETE FROM jobs");
+  await db.query("DELETE FROM technologies");
+
 
   await Company.create(
       {
@@ -95,7 +103,14 @@ async function commonBeforeAll() {
       companyHandle: "c3",
     })
   ])
-  console.log({a: sampleJobs[0]})
+  const technologies = [
+    await Technology.create({name: 't1'}),
+    await Technology.create({name: 't2'}),
+    await Technology.create({name: 't3'})
+  ]
+  await User.addTechologies('u1', technologies.map(t => t.id));
+  await Job.addTechologies(sampleJobs[0].id, [technologies[0].id]);
+  await Job.addTechologies(sampleJobs[1].id, [technologies[1].id]);
 }
 
 async function commonBeforeEach() {

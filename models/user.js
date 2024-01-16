@@ -251,14 +251,31 @@ class User {
       WHERE username = $1
     `, [username])
     const technologies = userTechnologies.map(t => t.tech_id)
-    // const technologies = [1, 2]
-    console.log({technologies})
+
     const result = await db.query(`
       SELECT id, title, salary, equity, company_handle AS "companyHandle"
       FROM jobs
       WHERE id in (SELECT job_id FROM job_tech WHERE tech_id = ANY($1))
     `, [technologies])
     return result.rows.map(j => jobSchema.parse(j))
+  }
+
+  /**
+   * Add related technologies to a user
+   * 
+   * @param {string} username
+   * @param {number[]} techIds
+   */
+  static async addTechologies(username, techIds) {
+    if (techIds.length === 0) return false 
+
+    const {rowCount} = await db.query(`
+      INSERT INTO user_tech
+      (username, tech_id)
+      VALUES ${techIds.map((id, idx) => `($1, $${idx+2})`).join(', ')}
+      ON CONFLICT DO NOTHING
+    `, [username, ...techIds])
+    return rowCount > 0
   }
 }
 

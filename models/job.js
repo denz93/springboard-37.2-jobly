@@ -82,6 +82,23 @@ class Job {
     }
     return jobSchema.parse(rows[0]);
   }
+
+  /**
+   * Add related technologies to job
+   * @param {number} jobId
+   * @param {number[]} techIds
+   */
+  static async addTechologies(jobId, techIds) {
+    if (techIds.length === 0) return false
+
+    const {rowCount} = await db.query(`
+      INSERT INTO job_tech
+      (job_id, tech_id)
+      VALUES ${techIds.map((id, idx) => `($1, $${idx+2})`).join(', ')}
+      ON CONFLICT DO NOTHING
+    `, [jobId, ...techIds])
+    return rowCount > 0
+  }
 }
 
 module.exports = Job;

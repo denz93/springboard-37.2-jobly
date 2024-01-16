@@ -441,3 +441,37 @@ describe('POST /users/:username/jobs/:id', () => {
     })
   })
 })
+
+/************************************** GET /users/:username/jobs */
+describe('GET /users/:username/jobs', () => {
+  test('works', async () => {
+    const resp = await request(app)
+      .get(`/users/u1/jobs`)
+      .set("authorization", `Bearer ${u1Token}`)
+      .expect(200)
+    expect(resp.body).toEqual({
+      jobs: expect.arrayContaining([sampleJobs[0], sampleJobs[1]])
+    })
+  })
+  test('works with empty jobs match', async () => {
+    const resp = await request(app)
+      .get(`/users/u2/jobs`)
+      .set("authorization", `Bearer ${u2Token}`)
+      .expect(200)
+    expect(resp.body).toEqual({
+      jobs: []
+    })
+  })
+
+  test('unauth for anon', async () => {
+    const resp = await request(app)
+      .get(`/users/u1/jobs`)
+      .expect(401)
+    expect(resp.body).toEqual({
+      error: {
+        message: 'Unauthorized',
+        status: 401
+      }
+    })
+  })
+})
